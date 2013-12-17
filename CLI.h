@@ -26,4 +26,52 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef _CLI_H
+#define _CLI_H
 
+#if ARDUINO >= 100
+# include <Arduino.h>
+#else
+# include <WProgram.h>
+#endif
+
+#include <stdlib.h>
+
+#define CLI_BUFFER 1024
+
+#define CLI_COMMAND(X) int X(Stream *dev, int argc, char **argv)
+
+typedef struct _CLIClient{
+    Stream *dev;
+    char input[CLI_BUFFER];
+    int pos;
+    struct _CLIClient *next;
+} CLIClient;
+
+typedef struct _CLICommand {
+    char *command;
+    int (*function)(Stream *, int, char **);
+    struct _CLICommand *next;
+} CLICommand;
+
+class CLIServer : public Print {
+    private:
+        CLIClient *clients;
+        CLICommand *commands;
+
+        int readline(CLIClient *);
+        int parseCommand(CLIClient *client);
+        char *getWord(char *buf);
+
+    public:
+        CLIServer();
+        void addCommand(const char *command, int (*function)(Stream *, int, char **));
+        void addClient(Stream *dev);
+        void process();
+        void broadcast(char *);
+        void write(uint8_t);
+};
+
+extern CLIServer CLI;
+
+#endif
