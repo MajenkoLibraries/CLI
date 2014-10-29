@@ -37,14 +37,18 @@ CLIServer::CLIServer() {
     commands = NULL;
 }
 
-void CLIServer::addClient(Stream *dev) {
-    CLIClient *scan;
-    CLIClient *newClient;
 
-    newClient = (CLIClient *)malloc(sizeof(CLIClient));
-    newClient->dev = dev;
-    newClient->pos = 0;
-    bzero(newClient->input, CLI_BUFFER);
+void CLIServer::addClient(Stream &dev) {
+    addClient(&dev);
+}
+
+void CLIServer::addClient(Stream *dev) {
+    CLIClientList *scan;
+    CLIClientList *newClient;
+
+    newClient = (CLIClientList *)malloc(sizeof(CLIClientList));
+
+    newClient->client = new CLIClient(dev);
     newClient->next = NULL;
     if (clients == NULL) {
         clients = newClient;
@@ -54,7 +58,7 @@ void CLIServer::addClient(Stream *dev) {
     scan->next = newClient;
 }
 
-void CLIServer::addCommand(const char *command, int (*function)(Stream *, int, char **)) {
+void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int, char **)) {
     CLICommand *scan;
     CLICommand *newCommand;
 
@@ -71,7 +75,7 @@ void CLIServer::addCommand(const char *command, int (*function)(Stream *, int, c
     scan->next = newCommand;
 }
 
-char *CLIServer::getWord(char *buf) {
+static inline char *getWord(char *buf) {
     static char *ptr = NULL;
     char *start, *scan;
     char term = ' ';
@@ -114,33 +118,33 @@ char *CLIServer::getWord(char *buf) {
     return start;
 }
 
-int CLIServer::readline(CLIClient *client) {
+int CLIClient::readline() {
 	int rpos;
 
-	char readch = client->dev->read();
+	char readch = dev->read();
 	
 	if (readch > 0) {
 		switch (readch) {
 			case '\n': // Ignore new-lines
 				break;
 			case '\r': // Return on CR
-				rpos = client->pos;
-				client->pos = 0;  // Reset position index ready for next time
-				client->dev->println();
+				rpos = pos;
+				pos = 0;  // Reset position index ready for next time
+				dev->println();
 				return rpos;
 			case 8:
 			case 127:
-				if (client->pos > 0) {
-					client->pos--;
-					client->input[client->pos] = 0;
-					client->dev->print("\b \b");
+				if (pos > 0) {
+					pos--;
+					input[pos] = 0;
+					dev->print("\b \b");
 				}
 				break;
 			default:
-				if (client->pos < CLI_BUFFER-1) {
-					client->dev->print(readch);	
-					client->input[client->pos++] = readch;
-					client->input[client->pos] = 0;
+				if (pos < CLI_BUFFER-2) {
+					dev->print(readch);	
+					input[pos++] = readch;
+					input[pos] = 0;
 				}
 		}
 	}
@@ -148,41 +152,66 @@ int CLIServer::readline(CLIClient *client) {
 	return -1;
 }
 
-int CLIServer::parseCommand(CLIClient *client) {
+int CLIClient::parseCommand() {
     CLICommand *scan;
 	char *argv[20];
 	int argc;
 	char *w;
 
 	argc = 0;
-	w = getWord(client->input);
+	w = getWord(input);
 	while ((argc < 20) && (w != NULL)) {
 		argv[argc++] = w;
 		w = getWord(NULL);
 	}
-	for (scan = commands; scan; scan = scan->next) {
+	for (scan = CLI.commands; scan; scan = scan->next) {
 		if (strcmp(scan->command, argv[0]) == 0) {
-			return scan->function(client->dev, argc, argv);
+			return scan->function(this, argc, argv);
 		}
 	}
 	return -1;
 }
 
 void CLIServer::process() {
-    CLIClient *scan;
+    CLIClientList *scan;
     for (scan = clients; scan; scan = scan->next) {
-        if (readline(scan) > 0) {
-            int rv = parseCommand(scan);
+        if (scan->client->readline() > 0) {
+            int rv = scan->client->parseCommand();
             if (rv == -1) {
-                scan->dev->println("Unknown command");
+                scan->client->println("Unknown command");
             }
         }
     }
 }
 
+#if (ARDUINO >= 100) 
+size_t CLIServer::write(uint8_t c) {
+#else
 void CLIServer::write(uint8_t c) {
-    CLIClient *scan;
+#endif
+    CLIClientList *scan;
     for (scan = clients; scan; scan = scan->next) {
-        scan->dev->write(c);
+        scan->client->write(c);
     }
+#if (ARDUINO > 100)
+    return 1;
+#endif
 }
+
+CLIClient::CLIClient(Stream *d) {
+    dev = d;
+    pos = 0;
+    memset(input, 0, CLI_BUFFER);
+}
+
+#if (ARDUINO >= 100) 
+size_t CLIClient::write(uint8_t c) {
+#else
+void CLIClient::write(uint8_t c) {
+#endif
+    dev->write(c);
+#if (ARDUINO > 100)
+    return 1;
+#endif
+}
+

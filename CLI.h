@@ -39,39 +39,62 @@
 
 #include <stdlib.h>
 
-#define CLI_BUFFER 1024
+#define CLI_BUFFER 80 
 
-#define CLI_COMMAND(X) int X(Stream *dev, int argc, char **argv)
+class CLIServer;
 
-typedef struct _CLIClient{
-    Stream *dev;
-    char input[CLI_BUFFER];
-    int pos;
-    struct _CLIClient *next;
-} CLIClient;
+class CLIClient : public Print {
+    private:
+        Stream *dev;
+        char input[CLI_BUFFER];
+        int pos;
+
+    public:
+        CLIClient(Stream *d);
+        int readline();
+        int parseCommand();
+
+#if (ARDUINO >= 100) 
+        size_t write(uint8_t);
+#else
+        void write(uint8_t);
+#endif
+        
+    friend class CLIServer;
+};
+
+#define CLI_COMMAND(X) int X(CLIClient *dev, int argc, char **argv)
+
+typedef struct _CLIClientList {
+    CLIClient *client;
+    struct _CLIClientList *next;
+} CLIClientList;
 
 typedef struct _CLICommand {
     char *command;
-    int (*function)(Stream *, int, char **);
+    int (*function)(CLIClient *, int, char **);
     struct _CLICommand *next;
 } CLICommand;
 
 class CLIServer : public Print {
     private:
-        CLIClient *clients;
+        CLIClientList *clients;
         CLICommand *commands;
-
-        int readline(CLIClient *);
-        int parseCommand(CLIClient *client);
-        char *getWord(char *buf);
 
     public:
         CLIServer();
-        void addCommand(const char *command, int (*function)(Stream *, int, char **));
+        void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
         void addClient(Stream *dev);
+        void addClient(Stream &dev);
         void process();
         void broadcast(char *);
+#if (ARDUINO >= 100) 
+        size_t write(uint8_t);
+#else
         void write(uint8_t);
+#endif
+
+    friend class CLIClient;
 };
 
 extern CLIServer CLI;
