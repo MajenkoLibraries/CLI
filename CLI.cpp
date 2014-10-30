@@ -35,6 +35,7 @@ CLIServer CLI;
 CLIServer::CLIServer() {
     clients = NULL;
     commands = NULL;
+    prompt = NULL;
 }
 
 
@@ -49,6 +50,7 @@ void CLIServer::addClient(Stream *dev) {
     newClient = (CLIClientList *)malloc(sizeof(CLIClientList));
 
     newClient->client = new CLIClient(dev);
+    newClient->client->setPrompt(prompt);
     newClient->next = NULL;
     if (clients == NULL) {
         clients = newClient;
@@ -175,11 +177,32 @@ int CLIClient::parseCommand() {
 void CLIServer::process() {
     CLIClientList *scan;
     for (scan = clients; scan; scan = scan->next) {
-        if (scan->client->readline() > 0) {
+        uint8_t ctest = scan->client->testConnected();
+
+        if (ctest == CLIClient::CONNECTED) {
+            if (_onConnect != NULL) {
+                _onConnect(scan->client, 0, NULL);
+            }
+        } else if (ctest == CLIClient::DISCONNECTED) {
+            if (_onDisconnect != NULL) {
+                _onDisconnect(scan->client, 0, NULL);
+            }
+        }
+
+        int rl = scan->client->readline();
+        if (rl > 0) {
             int rv = scan->client->parseCommand();
             if (rv == -1) {
                 scan->client->println("Unknown command");
+            } else {
+                if (rv > 0) {
+                    scan->client->print("Error ");
+                    scan->client->println(rv);
+                }
             }
+            scan->client->printPrompt();
+        } else if (rl == 0) {
+            scan->client->printPrompt();
         }
     }
 }
@@ -202,6 +225,7 @@ CLIClient::CLIClient(Stream *d) {
     dev = d;
     pos = 0;
     memset(input, 0, CLI_BUFFER);
+    connected = false;
 }
 
 #if (ARDUINO >= 100) 
@@ -213,5 +237,57 @@ void CLIClient::write(uint8_t c) {
 #if (ARDUINO > 100)
     return 1;
 #endif
+}
+
+void CLIClient::setPrompt(char *p) {
+    if (prompt != NULL) {
+        free(prompt);
+        prompt = NULL;
+    }
+    if (p == NULL) {
+        return;
+    }
+    prompt = strdup(p);
+}
+
+void CLIServer::setDefaultPrompt(char *p) {
+    if (prompt != NULL) {
+        free(prompt);
+        prompt = NULL;
+    }
+    if (p == NULL) {
+        return;
+    }
+    prompt = strdup(p);
+}
+
+void CLIClient::printPrompt() {
+    if (prompt == NULL) {
+        return;
+    }
+    print(prompt);
+}
+
+uint8_t CLIClient::testConnected() {
+    if (&dev) {
+        if (!connected) {
+            connected = true;
+            return CLIClient::CONNECTED;
+        }
+    } else {
+        if (connected) {
+            connected = false;
+            return CLIClient::DISCONNECTED;
+        }
+    }
+    return CLIClient::IDLE;
+}
+
+void CLIServer::onConnect(int (*function)(CLIClient *, int, char **)) {
+    _onConnect = function;
+}
+
+void CLIServer::onDisconnect(int (*function)(CLIClient *, int, char **)) {
+    _onDisconnect = function;
 }
 

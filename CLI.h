@@ -48,11 +48,21 @@ class CLIClient : public Print {
         Stream *dev;
         char input[CLI_BUFFER];
         int pos;
+        char *prompt;
+        boolean connected;
+
+        uint8_t testConnected();
 
     public:
+        static const uint8_t IDLE = 0;
+        static const uint8_t CONNECTED = 1;
+        static const uint8_t DISCONNECTED = 2;
+
         CLIClient(Stream *d);
+        void printPrompt();
         int readline();
         int parseCommand();
+        void setPrompt(char *p);
 
 #if (ARDUINO >= 100) 
         size_t write(uint8_t);
@@ -80,13 +90,20 @@ class CLIServer : public Print {
     private:
         CLIClientList *clients;
         CLICommand *commands;
+        char *prompt;
+
+        int (*_onConnect)(CLIClient *, int, char **);
+        int (*_onDisconnect)(CLIClient *, int, char **);
 
     public:
         CLIServer();
         void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
         void addClient(Stream *dev);
         void addClient(Stream &dev);
+        void onConnect(int (*function)(CLIClient *, int, char **));
+        void onDisconnect(int (*function)(CLIClient *, int, char **));
         void process();
+        void setDefaultPrompt(char *p);
         void broadcast(char *);
 #if (ARDUINO >= 100) 
         size_t write(uint8_t);
