@@ -51,6 +51,8 @@ class CLIClient : public Print {
         char *prompt;
         boolean connected;
 
+        boolean willEcho;
+
         uint8_t testConnected();
 
     public:
@@ -59,6 +61,8 @@ class CLIClient : public Print {
         static const uint8_t DISCONNECTED = 2;
 
         CLIClient(Stream *d);
+        ~CLIClient();
+        void echo(boolean e) { willEcho = e; }
         void printPrompt();
         int readline();
         int parseCommand();
@@ -98,8 +102,12 @@ class CLIServer : public Print {
     public:
         CLIServer();
         void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
-        void addClient(Stream *dev);
-        void addClient(Stream &dev);
+        CLIClient *addClient(Stream *dev);
+        CLIClient *addClient(Stream &dev);
+        void removeClient(CLIClient *c);
+        void removeClient(CLIClient &c);
+        void removeClient(Stream *dev);
+        void removeClient(Stream &dev);
         void onConnect(int (*function)(CLIClient *, int, char **));
         void onDisconnect(int (*function)(CLIClient *, int, char **));
         void process();

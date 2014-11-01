@@ -39,11 +39,11 @@ CLIServer::CLIServer() {
 }
 
 
-void CLIServer::addClient(Stream &dev) {
-    addClient(&dev);
+CLIClient *CLIServer::addClient(Stream &dev) {
+    return addClient(&dev);
 }
 
-void CLIServer::addClient(Stream *dev) {
+CLIClient *CLIServer::addClient(Stream *dev) {
     CLIClientList *scan;
     CLIClientList *newClient;
 
@@ -54,10 +54,11 @@ void CLIServer::addClient(Stream *dev) {
     newClient->next = NULL;
     if (clients == NULL) {
         clients = newClient;
-        return;
+        return newClient->client;
     }
     for (scan = clients; scan->next; scan = scan->next);
     scan->next = newClient;
+    return newClient->client;
 }
 
 void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int, char **)) {
@@ -132,19 +133,19 @@ int CLIClient::readline() {
 			case '\r': // Return on CR
 				rpos = pos;
 				pos = 0;  // Reset position index ready for next time
-				dev->println();
+				if (willEcho) dev->println();
 				return rpos;
 			case 8:
 			case 127:
 				if (pos > 0) {
 					pos--;
 					input[pos] = 0;
-					dev->print("\b \b");
+					if (willEcho) dev->print("\b \b");
 				}
 				break;
 			default:
 				if (pos < CLI_BUFFER-2) {
-					dev->print(readch);	
+					if (willEcho) dev->print(readch);	
 					input[pos++] = readch;
 					input[pos] = 0;
 				}
@@ -226,6 +227,7 @@ CLIClient::CLIClient(Stream *d) {
     pos = 0;
     memset(input, 0, CLI_BUFFER);
     connected = false;
+    willEcho = true;
 }
 
 #if (ARDUINO >= 100) 
@@ -291,3 +293,44 @@ void CLIServer::onDisconnect(int (*function)(CLIClient *, int, char **)) {
     _onDisconnect = function;
 }
 
+
+CLIClient::~CLIClient() {
+    if (prompt) {
+        free(prompt);
+    }
+}
+
+void CLIServer::removeClient(CLIClient &c) {
+    removeClient(&c);
+}
+
+void CLIServer::removeClient(CLIClient *c) {
+    removeClient(c->dev);
+}
+
+void CLIServer::removeClient(Stream &dev) {
+    removeClient(&dev);
+}
+
+void CLIServer::removeClient(Stream *dev) {
+    CLIClientList *scan;
+    CLIClientList *oldClient;
+    
+    if (clients->client->dev == dev) {
+        oldClient = clients;
+        clients = oldClient->next;
+        delete oldClient->client;
+        free(oldClient);
+        return;
+    }
+
+    for (scan = clients; scan->next; scan = scan->next) {
+        if (scan->next->client->dev == dev) {
+            oldClient = scan->next;
+            scan->next = oldClient->next;
+            delete oldClient->client;
+            free(oldClient);
+            return;
+        }
+    }
+}
