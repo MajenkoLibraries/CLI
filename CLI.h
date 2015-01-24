@@ -55,6 +55,8 @@ class CLIClient : public Print {
 
         uint8_t testConnected();
 
+        void *_sessionData;
+
     public:
         static const uint8_t IDLE = 0;
         static const uint8_t CONNECTED = 1;
@@ -67,6 +69,8 @@ class CLIClient : public Print {
         int readline();
         int parseCommand();
         void setPrompt(char *p);
+        void setSessionData(void *data);
+        void *getSessionData();
 
 #if (ARDUINO >= 100) 
         size_t write(uint8_t);
@@ -102,6 +106,8 @@ class CLIServer : public Print {
     public:
         CLIServer();
         void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
+        CLIClient *addClient(Stream *dev, void *data);
+        CLIClient *addClient(Stream &dev, void *data);
         CLIClient *addClient(Stream *dev);
         CLIClient *addClient(Stream &dev);
         void removeClient(CLIClient *c);

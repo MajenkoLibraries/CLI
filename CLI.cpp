@@ -39,11 +39,19 @@ CLIServer::CLIServer() {
 }
 
 
+CLIClient *CLIServer::addClient(Stream &dev, void *data) {
+    return addClient(&dev, data);
+}
+
 CLIClient *CLIServer::addClient(Stream &dev) {
-    return addClient(&dev);
+    return addClient(&dev, null);
 }
 
 CLIClient *CLIServer::addClient(Stream *dev) {
+    return addClient(dev, null);
+}
+
+CLIClient *CLIServer::addClient(Stream *dev, void *data) {
     CLIClientList *scan;
     CLIClientList *newClient;
 
@@ -51,6 +59,7 @@ CLIClient *CLIServer::addClient(Stream *dev) {
 
     newClient->client = new CLIClient(dev);
     newClient->client->setPrompt(prompt);
+    newClient->client->setSessionData(data);
     newClient->next = NULL;
     if (clients == NULL) {
         clients = newClient;
@@ -173,6 +182,14 @@ int CLIClient::parseCommand() {
 		}
 	}
 	return -1;
+}
+
+void CLIClient::setSessionData(void *data) {
+    _sessionData = data;
+}
+
+void *CLIClient::getSessionData() {
+    return _sessionData;
 }
 
 void CLIServer::process() {
