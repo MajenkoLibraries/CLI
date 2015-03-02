@@ -44,11 +44,11 @@ CLIClient *CLIServer::addClient(Stream &dev, void *data) {
 }
 
 CLIClient *CLIServer::addClient(Stream &dev) {
-    return addClient(&dev, null);
+    return addClient(&dev, NULL);
 }
 
 CLIClient *CLIServer::addClient(Stream *dev) {
-    return addClient(dev, null);
+    return addClient(dev, NULL);
 }
 
 CLIClient *CLIServer::addClient(Stream *dev, void *data) {
