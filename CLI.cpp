@@ -36,6 +36,19 @@ CLIServer::CLIServer() {
     clients = NULL;
     commands = NULL;
     prompt = NULL;
+    _caseSensitive = true;
+}
+
+void CLIServer::setCaseInsensitive() {
+    _caseSensitive = false;
+}
+
+void CLIServer::setCaseSensitive() {
+    _caseSensitive = true;
+}
+
+boolean CLIServer::isCaseSensitive() {
+    return _caseSensitive;
 }
 
 
@@ -76,6 +89,25 @@ void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int
 
     newCommand = (CLICommand *)malloc(sizeof(CLICommand));
     newCommand->command = strdup(command);
+    newCommand->flags = 0;
+    newCommand->function = function;
+    newCommand->next = NULL;
+
+    if (commands == NULL) {
+        commands = newCommand;
+        return;
+    }
+    for (scan = commands; scan->next; scan = scan->next);
+    scan->next = newCommand;
+}
+
+void CLIServer::addPrefix(const char *command, int (*function)(CLIClient *, int, char **)) {
+    CLICommand *scan;
+    CLICommand *newCommand;
+
+    newCommand = (CLICommand *)malloc(sizeof(CLICommand));
+    newCommand->command = strdup(command);
+    newCommand->flags = CLI_IS_PREFIX;
     newCommand->function = function;
     newCommand->next = NULL;
 
@@ -176,11 +208,37 @@ int CLIClient::parseCommand() {
 		argv[argc++] = w;
 		w = getWord(NULL);
 	}
-	for (scan = CLI.commands; scan; scan = scan->next) {
-		if (strcmp(scan->command, argv[0]) == 0) {
-			return scan->function(this, argc, argv);
-		}
-	}
+    if (CLI.isCaseSensitive()) {
+        for (scan = CLI.commands; scan; scan = scan->next) {
+            if ((scan->flags & CLI_IS_PREFIX) == 0) {
+                if (strcmp(scan->command, argv[0]) == 0) {
+                    return scan->function(this, argc, argv);
+                }
+            }
+        }
+        for (scan = CLI.commands; scan; scan = scan->next) {
+            if ((scan->flags & CLI_IS_PREFIX) != 0) {
+                if (strncmp(scan->command, argv[0], strlen(scan->command)) == 0) {
+                    return scan->function(this, argc, argv);
+                }
+            }
+        }
+    } else {
+        for (scan = CLI.commands; scan; scan = scan->next) {
+            if ((scan->flags & CLI_IS_PREFIX) == 0) {
+                if (strcasecmp(scan->command, argv[0]) == 0) {
+                    return scan->function(this, argc, argv);
+                }
+            }
+        }
+        for (scan = CLI.commands; scan; scan = scan->next) {
+            if ((scan->flags & CLI_IS_PREFIX) != 0) {
+                if (strncasecmp(scan->command, argv[0], strlen(scan->command)) == 0) {
+                    return scan->function(this, argc, argv);
+                }
+            }
+        }
+    }
 	return -1;
 }
 
@@ -258,7 +316,7 @@ void CLIClient::write(uint8_t c) {
 #endif
 }
 
-void CLIClient::setPrompt(char *p) {
+void CLIClient::setPrompt(const char *p) {
     if (prompt != NULL) {
         free(prompt);
         prompt = NULL;
@@ -269,7 +327,7 @@ void CLIClient::setPrompt(char *p) {
     prompt = strdup(p);
 }
 
-void CLIServer::setDefaultPrompt(char *p) {
+void CLIServer::setDefaultPrompt(const char *p) {
     if (prompt != NULL) {
         free(prompt);
         prompt = NULL;

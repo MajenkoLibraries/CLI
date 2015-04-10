@@ -68,7 +68,7 @@ class CLIClient : public Print {
         void printPrompt();
         int readline();
         int parseCommand();
-        void setPrompt(char *p);
+        void setPrompt(const char *p);
         void setSessionData(void *data);
         void *getSessionData();
 
@@ -88,8 +88,11 @@ typedef struct _CLIClientList {
     struct _CLIClientList *next;
 } CLIClientList;
 
+#define CLI_IS_PREFIX 0x01
+
 typedef struct _CLICommand {
     char *command;
+    uint8_t flags;
     int (*function)(CLIClient *, int, char **);
     struct _CLICommand *next;
 } CLICommand;
@@ -99,13 +102,18 @@ class CLIServer : public Print {
         CLIClientList *clients;
         CLICommand *commands;
         char *prompt;
+        boolean _caseSensitive;
 
         int (*_onConnect)(CLIClient *, int, char **);
         int (*_onDisconnect)(CLIClient *, int, char **);
 
     public:
         CLIServer();
+        void setCaseInsensitive();
+        void setCaseSensitive();
+        boolean isCaseSensitive();
         void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
+        void addPrefix(const char *command, int (*function)(CLIClient *, int, char **));
         CLIClient *addClient(Stream *dev, void *data);
         CLIClient *addClient(Stream &dev, void *data);
         CLIClient *addClient(Stream *dev);
@@ -117,7 +125,7 @@ class CLIServer : public Print {
         void onConnect(int (*function)(CLIClient *, int, char **));
         void onDisconnect(int (*function)(CLIClient *, int, char **));
         void process();
-        void setDefaultPrompt(char *p);
+        void setDefaultPrompt(const char *p);
         void broadcast(char *);
 #if (ARDUINO >= 100) 
         size_t write(uint8_t);
