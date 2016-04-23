@@ -43,7 +43,7 @@
 
 class CLIServer;
 
-class CLIClient : public Print {
+class CLIClient : public Stream {
     private:
         Stream *dev;
         char input[CLI_BUFFER];
@@ -72,11 +72,11 @@ class CLIClient : public Print {
         void setSessionData(void *data);
         void *getSessionData();
 
-#if (ARDUINO >= 100) 
         size_t write(uint8_t);
-#else
-        void write(uint8_t);
-#endif
+        int available() { return dev->available(); }
+        int read() { return dev->read(); }
+        void flush() { dev->flush(); }
+        int peek() { return dev->peek(); }
         
     friend class CLIServer;
 };

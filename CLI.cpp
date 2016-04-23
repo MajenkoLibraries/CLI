@@ -169,9 +169,8 @@ int CLIClient::readline() {
 	
 	if (readch > 0) {
 		switch (readch) {
-			case '\n': // Ignore new-lines
-				break;
-			case '\r': // Return on CR
+			case '\r': // Ignore CR
+			case '\n': // Return on NL
 				rpos = pos;
 				pos = 0;  // Reset position index ready for next time
 				if (willEcho) dev->println();
