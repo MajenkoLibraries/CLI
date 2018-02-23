@@ -128,7 +128,7 @@ static inline char *getWord(char *buf) {
         ptr = buf;
     }
 
-    while (*ptr == ' ' || *ptr == '\t' && *ptr != '\0') {
+    while ((*ptr == ' ' || *ptr == '\t') && *ptr != '\0') {
         ptr++;
     }
     if (*ptr == '\0') {
@@ -165,8 +165,12 @@ static inline char *getWord(char *buf) {
 int CLIClient::readline() {
 	int rpos;
 
-	char readch = dev->read();
-	
+    if (!dev->available()) {
+        return -1;
+    }
+
+	int readch = dev->read();
+
 	if (readch > 0) {
 		switch (readch) {
 			case '\r': // Ignore CR
@@ -174,6 +178,10 @@ int CLIClient::readline() {
 				rpos = pos;
 				pos = 0;  // Reset position index ready for next time
 				if (willEcho) dev->println();
+                if (_redirect != NULL) {
+                    _redirect(this, input, rpos);
+                    return -1;
+                }
 				return rpos;
 			case 8:
 			case 127:
@@ -185,7 +193,7 @@ int CLIClient::readline() {
 				break;
 			default:
 				if (pos < CLI_BUFFER-2) {
-					if (willEcho) dev->print(readch);	
+					if (willEcho) dev->write(readch);	
 					input[pos++] = readch;
 					input[pos] = 0;
 				}
@@ -257,6 +265,7 @@ void CLIServer::process() {
         if (ctest == CLIClient::CONNECTED) {
             if (_onConnect != NULL) {
                 _onConnect(scan->client, 0, NULL);
+                scan->client->printPrompt();
             }
         } else if (ctest == CLIClient::DISCONNECTED) {
             if (_onDisconnect != NULL) {
@@ -302,6 +311,7 @@ CLIClient::CLIClient(Stream *d) {
     memset(input, 0, CLI_BUFFER);
     connected = false;
     willEcho = true;
+    _redirect = NULL;
 }
 
 #if (ARDUINO >= 100) 

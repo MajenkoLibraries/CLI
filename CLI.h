@@ -57,13 +57,16 @@ class CLIClient : public Stream {
 
         void *_sessionData;
 
+        void (*_redirect)(CLIClient *, char *, int);
+
+
     public:
         static const uint8_t IDLE = 0;
         static const uint8_t CONNECTED = 1;
         static const uint8_t DISCONNECTED = 2;
 
         CLIClient(Stream *d);
-        ~CLIClient();
+        virtual ~CLIClient();
         void echo(boolean e) { willEcho = e; }
         void printPrompt();
         int readline();
@@ -71,6 +74,9 @@ class CLIClient : public Stream {
         void setPrompt(const char *p);
         void setSessionData(void *data);
         void *getSessionData();
+
+        void redirectStart(void (*func)(CLIClient *, char *, int)) { _redirect = func; }
+        void redirectEnd() { _redirect = NULL; }
 
         size_t write(uint8_t);
         int available() { return dev->available(); }
