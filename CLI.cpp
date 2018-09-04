@@ -171,7 +171,7 @@ int CLIClient::readline() {
 
 	int readch = dev->read();
 
-	if (readch > 0) {
+	while (readch > 0) {
 		switch (readch) {
 			case '\r': // Ignore CR
 			case '\n': // Return on NL
@@ -198,6 +198,7 @@ int CLIClient::readline() {
 					input[pos] = 0;
 				}
 		}
+        readch = dev->read();
 	}
 	// No end of line has been found, so return -1.
 	return -1;
