@@ -1,0 +1,16 @@
+{
+    "name": "CLI",
+    "provides": "CLI.h",
+    "license": "LICENSE",
+    "readme": "README.md",
+    "category": "Communications",
+    "subcategory": "Serial",
+    "maintainer": "matt@majenko.co.uk",
+    "version": "1.0.1",
+    "family": "all",
+    "install": {
+        "examples": "examples",
+        "CLI.cpp": "CLI.cpp",
+        "CLI.h": "CLI.h"
+    }
+}
