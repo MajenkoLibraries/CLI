@@ -6,7 +6,7 @@
     "description": "Command-line Interface library for Arduino",
     "category": "Communications",
     "subcategory": "Serial",
-    "maintainer": "matt@majenko.co.uk",
+    "maintainer": "Matt Jenkins <matt@majenko.co.uk>",
     "version": "1.0.1",
     "family": "all",
     "core": "all",
