@@ -9,6 +9,7 @@
     "maintainer": "matt@majenko.co.uk",
     "version": "1.0.1",
     "family": "all",
+    "core": "all",
     "install": {
         "examples": "examples",
         "CLI.cpp": "CLI.cpp",
