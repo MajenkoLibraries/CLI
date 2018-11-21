@@ -11,8 +11,8 @@
     "family": "all",
     "core": "all",
     "install": {
-        "examples": "examples",
-        "CLI.cpp": "CLI.cpp",
-        "CLI.h": "CLI.h"
+        "examples": "/",
+        "CLI.cpp": "/",
+        "CLI.h": "/"
     }
 }
