@@ -3,6 +3,7 @@
     "provides": "CLI.h",
     "license": "LICENSE",
     "readme": "README.md",
+    "description": "Command-line Interface library for Arduino",
     "category": "Communications",
     "subcategory": "Serial",
     "maintainer": "matt@majenko.co.uk",
