@@ -312,6 +312,7 @@ CLIClient::CLIClient(Stream *d) {
     memset(input, 0, CLI_BUFFER);
     connected = false;
     willEcho = true;
+    prompt = NULL;
     _redirect = NULL;
 }
 

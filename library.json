@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/MajenkoLibraries/CLI"
   },
-  "version": "1.0.13",
+  "version": "1.2.3",
   "frameworks": "arduino",
   "platforms": "*"
 }
