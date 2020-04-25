@@ -1,5 +1,0 @@
-CLI.cpp libraries/Communications/CLI/
-CLI.h libraries/Communications/CLI/
-LICENSE usr/share/doc/libcli/
-README.md usr/share/doc/libcli/
-examples/CLITest/CLITest.ino libraries/Communications/CLI/examples/CLITest
